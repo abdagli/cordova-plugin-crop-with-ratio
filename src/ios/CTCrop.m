@@ -44,8 +44,8 @@
     cropController.delegate = self;
     cropController.image = image;
     
-    CGFloat width = self.targetWidth > -1 ? (CGFloat)self.targetWidth : image.size.width;
-    CGFloat height = self.targetHeight > -1 ? (CGFloat)self.targetHeight : image.size.height;
+    CGFloat width = self.targetWidth >= 0 ? (CGFloat)self.targetWidth : image.size.width;
+    CGFloat height = self.targetHeight >= 0 ? (CGFloat)self.targetHeight : image.size.height;
     CGFloat croperWidth;
     CGFloat croperHeight;
     
