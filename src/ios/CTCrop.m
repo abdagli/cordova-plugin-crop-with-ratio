@@ -5,10 +5,6 @@
 @interface CTCrop ()
 @property (copy) NSString* callbackId;
 @property (assign) NSUInteger quality;
-@property (assign) NSUInteger targetWidth;
-@property (assign) NSUInteger targetHeight;
-@property (assign) NSInteger widthRatio;
-@property (assign) NSInteger heightRatio;
 @end
 
 @implementation CTCrop
@@ -16,13 +12,8 @@
 - (void) cropImage: (CDVInvokedUrlCommand *) command {
     UIImage *image;
     NSString *imagePath = [command.arguments objectAtIndex:0];
-    NSDictionary *options = [command.arguments objectAtIndex:1];
     
-    self.quality = options[@"quality"] ? [options[@"quality"] intValue] : 100;
-    self.targetWidth = options[@"targetWidth"] ? [options[@"targetWidth"] intValue] : -1;
-    self.targetHeight = options[@"targetHeight"] ? [options[@"targetHeight"] intValue] : -1;
-    self.widthRatio = options[@"widthRatio"] ? [options[@"widthRatio"] intValue] : -1;
-    self.heightRatio = options[@"heightRatio"] ? [options[@"heightRatio"] intValue] : -1;
+    self.quality = 50;
     
     NSString *filePrefix = @"file://";
     
@@ -43,27 +34,15 @@
     PECropViewController *cropController = [[PECropViewController alloc] init];
     cropController.delegate = self;
     cropController.image = image;
+    cropController.keepingCropAspectRatio = YES;
     
-    CGFloat width = self.targetWidth > -1 ? (CGFloat)self.targetWidth : image.size.width;
-    CGFloat height = self.targetHeight > -1 ? (CGFloat)self.targetHeight : image.size.height;
+    CGFloat width = image.size.width;
+    CGFloat height = image.size.height;
     CGFloat croperWidth;
     CGFloat croperHeight;
     
-    if (self.widthRatio < 0 || self.heightRatio < 0){
-        cropController.keepingCropAspectRatio = NO;
-        croperWidth = MIN(width, height);
-        croperHeight = MIN(width, height);
-    } else {
-        cropController.keepingCropAspectRatio = YES;
-        
-        if(self.widthRatio > self.heightRatio) {
-            croperWidth = MIN(width, height);
-            croperHeight = MIN(width, height) * self.heightRatio / self.widthRatio;
-        } else {
-            croperWidth = MIN(width, height);
-            croperHeight = MIN(width, height) * self.widthRatio / self.heightRatio;
-        }
-    }
+    croperWidth = MIN(width, height);
+    croperHeight = croperWidth;
     
     cropController.toolbarHidden = YES;
     cropController.rotationEnabled = NO;
@@ -82,13 +61,22 @@
     [self.viewController presentViewController:navigationController animated:YES completion:NULL];
 }
 
+- (UIImage *)imageWithImage:(UIImage *)image scaledToSize:(CGSize)newSize{
+    UIGraphicsBeginImageContext(newSize);
+    [image drawInRect:CGRectMake(0, 0, newSize.width, newSize.height)];
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return newImage;
+}
+
 #pragma mark - PECropViewControllerDelegate
 
 - (void)cropViewController:(PECropViewController *)controller didFinishCroppingImage:(UIImage *)croppedImage {
     [controller dismissViewControllerAnimated:YES completion:nil];
     if (!self.callbackId) return;
     
-    NSData *data = UIImageJPEGRepresentation(croppedImage, (CGFloat) self.quality);
+    UIImage *resizedImage = [self imageWithImage:croppedImage scaledToSize:CGSizeMake(500.0, 500.0)];
+    NSData *data = UIImageJPEGRepresentation(resizedImage, (CGFloat) self.quality);
     NSString* filePath = [self tempFilePath:@"jpg"];
     CDVPluginResult *result;
     NSError *err;
